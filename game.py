@@ -1,75 +1,111 @@
 import pygame
-import random
 import sys
+import requests
+import io
 
-# Initialize Pygame
+# === Download cow image from internet ===
+# You can replace this link with your own NFT cow image
+COW_IMAGE_URL = "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cow_cartoon_04.svg/768px-Cow_cartoon_04.svg.png"
+
+def load_image_from_url(url):
+    response = requests.get(url)
+    if response.status_code == 200:
+        image_file = io.BytesIO(response.content)
+        return pygame.image.load(image_file).convert_alpha()
+    else:
+        print("❌ Failed to download image.")
+        sys.exit()
+
+# Initialize pygame
 pygame.init()
 
-# Screen settings
+# Screen setup
 WIDTH, HEIGHT = 800, 400
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("NFT Cow Runner")
+pygame.display.set_caption("Cow Adventure 🐄")
+
+# Clock
+clock = pygame.time.Clock()
 
 # Colors
 WHITE = (255, 255, 255)
-GREEN = (0, 200, 0)
+SKY_BLUE = (135, 206, 235)
+GREEN = (34, 139, 34)
 
-# Load cow image (replace with your NFT cow PNG)
-cow_img = pygame.image.load("cow.png")
+# Load cow from internet
+cow_img = load_image_from_url(COW_IMAGE_URL)
 cow_img = pygame.transform.scale(cow_img, (80, 80))
-cow_rect = cow_img.get_rect(midbottom=(100, HEIGHT - 30))
 
-# Obstacle
-obstacle_img = pygame.Surface((50, 50))
-obstacle_img.fill((200, 0, 0))
-obstacles = []
+# Cow position
+cow_x = 50
+cow_y = HEIGHT - 120
+cow_y_velocity = 0
+gravity = 1
+jump_strength = -15
+is_jumping = False
 
-# Physics
-gravity = 0
-jump_force = -15
+# Ground
+ground_height = HEIGHT - 40
 
-clock = pygame.time.Clock()
+# Obstacles
+obstacle_width = 40
+obstacle_height = 60
+obstacle_x = WIDTH
+obstacle_speed = 6
 
-# Main loop
+score = 0
+font = pygame.font.SysFont(None, 40)
+
+# Main game loop
 running = True
 while running:
-    screen.fill(GREEN)
+    clock.tick(60)
+    screen.fill(SKY_BLUE)
 
+    # Draw ground
+    pygame.draw.rect(screen, GREEN, (0, ground_height, WIDTH, 40))
+
+    # Events
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
-            pygame.quit()
-            sys.exit()
+            running = False
         if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_SPACE and cow_rect.bottom >= HEIGHT - 30:
-                gravity = jump_force
+            if event.key == pygame.K_SPACE and not is_jumping:
+                cow_y_velocity = jump_strength
+                is_jumping = True
 
-    # Cow movement
-    gravity += 1
-    cow_rect.y += gravity
-    if cow_rect.bottom >= HEIGHT - 30:
-        cow_rect.bottom = HEIGHT - 30
+    # Update cow position
+    cow_y_velocity += gravity
+    cow_y += cow_y_velocity
+    if cow_y >= HEIGHT - 120:
+        cow_y = HEIGHT - 120
+        cow_y_velocity = 0
+        is_jumping = False
 
-    # Spawn obstacles
-    if random.randint(1, 50) == 1:
-        obstacle_rect = obstacle_img.get_rect(midbottom=(WIDTH, HEIGHT - 30))
-        obstacles.append(obstacle_rect)
+    # Move obstacle
+    obstacle_x -= obstacle_speed
+    if obstacle_x < -obstacle_width:
+        obstacle_x = WIDTH
+        score += 1
 
-    # Move obstacles
-    for obstacle in obstacles:
-        obstacle.x -= 5
-        screen.blit(obstacle_img, obstacle)
-    obstacles = [o for o in obstacles if o.x > -50]
+    # Draw obstacle
+    pygame.draw.rect(screen, (139, 69, 19), (obstacle_x, ground_height - obstacle_height, obstacle_width, obstacle_height))
 
     # Draw cow
-    screen.blit(cow_img, cow_rect)
+    screen.blit(cow_img, (cow_x, cow_y))
 
-    # Collision check
-    for obstacle in obstacles:
-        if cow_rect.colliderect(obstacle):
-            print("Game Over")
-            pygame.quit()
-            sys.exit()
+    # Collision detection
+    cow_rect = pygame.Rect(cow_x, cow_y, 80, 80)
+    obstacle_rect = pygame.Rect(obstacle_x, ground_height - obstacle_height, obstacle_width, obstacle_height)
+    if cow_rect.colliderect(obstacle_rect):
+        print(f"💀 Game Over! Final Score: {score}")
+        running = False
 
-    pygame.display.update()
-    clock.tick(60)
+    # Score display
+    score_text = font.render(f"Score: {score}", True, WHITE)
+    screen.blit(score_text, (10, 10))
 
+    pygame.display.flip()
+
+pygame.quit()
+sys.exit()
