@@ -1,20 +1,5 @@
 import pygame
 import sys
-import requests
-import io
-
-# === Download cow image from internet ===
-# You can replace this link with your own NFT cow image
-COW_IMAGE_URL = "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cow_cartoon_04.svg/768px-Cow_cartoon_04.svg.png"
-
-def load_image_from_url(url):
-    response = requests.get(url)
-    if response.status_code == 200:
-        image_file = io.BytesIO(response.content)
-        return pygame.image.load(image_file).convert_alpha()
-    else:
-        print("❌ Failed to download image.")
-        sys.exit()
 
 # Initialize pygame
 pygame.init()
@@ -31,10 +16,8 @@ clock = pygame.time.Clock()
 WHITE = (255, 255, 255)
 SKY_BLUE = (135, 206, 235)
 GREEN = (34, 139, 34)
-
-# Load cow from internet
-cow_img = load_image_from_url(COW_IMAGE_URL)
-cow_img = pygame.transform.scale(cow_img, (80, 80))
+BROWN = (139, 69, 19)
+COW_COLOR = (255, 255, 200)  # light cream
 
 # Cow position
 cow_x = 50
@@ -43,6 +26,7 @@ cow_y_velocity = 0
 gravity = 1
 jump_strength = -15
 is_jumping = False
+cow_size = 60
 
 # Ground
 ground_height = HEIGHT - 40
@@ -89,13 +73,13 @@ while running:
         score += 1
 
     # Draw obstacle
-    pygame.draw.rect(screen, (139, 69, 19), (obstacle_x, ground_height - obstacle_height, obstacle_width, obstacle_height))
+    pygame.draw.rect(screen, BROWN, (obstacle_x, ground_height - obstacle_height, obstacle_width, obstacle_height))
 
-    # Draw cow
-    screen.blit(cow_img, (cow_x, cow_y))
+    # Draw cow (circle shape)
+    pygame.draw.circle(screen, COW_COLOR, (cow_x + cow_size // 2, cow_y + cow_size // 2), cow_size // 2)
 
     # Collision detection
-    cow_rect = pygame.Rect(cow_x, cow_y, 80, 80)
+    cow_rect = pygame.Rect(cow_x, cow_y, cow_size, cow_size)
     obstacle_rect = pygame.Rect(obstacle_x, ground_height - obstacle_height, obstacle_width, obstacle_height)
     if cow_rect.colliderect(obstacle_rect):
         print(f"💀 Game Over! Final Score: {score}")
